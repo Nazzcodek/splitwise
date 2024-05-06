@@ -1,47 +1,47 @@
 import unittest
-from services.users import User, user_instances
-from services.expenses import Expense, ExpenseManager
+from services.users import User
+from services.expenses import Expense
+
+class TestUser(unittest.TestCase):
+    def test_user_creation(self):
+        user = User(1, "John", "john@example.com", "1234567890")
+        self.assertEqual(user.user_id, 1)
+        self.assertEqual(user.username, "John")
+        self.assertEqual(user.email, "john@example.com")
+        self.assertEqual(user.mobile_number, "1234567890")
+        self.assertEqual(user.owes, {})
+        self.assertEqual(user.is_owed, {})
 
 class TestExpense(unittest.TestCase):
     def setUp(self):
-        # Creating users for testing
-        self.user1 = User(user_id=1, name="User 1", email="user1@example.com", mobile_number="1234567890")
-        self.user2 = User(user_id=2, name="User 2", email="user2@example.com", mobile_number="9876543210")
-        self.user3 = User(user_id=3, name="User 3", email="user3@example.com", mobile_number="5555555555")
-        self.user4 = User(user_id=4, name="User 4", email="user4@example.com", mobile_number="9999999999")
-        
-    def test_equal_split(self):
-        # Test equal split type
-        expense = Expense(paid_by=self.user1, amount=100, user_count=3, splits=[self.user2, self.user3], percentages=None, split_type="EQUAL")
+        self.user1 = User(1, "John", "john@example.com", "1234567890")
+        self.user2 = User(2, "Jane", "jane@example.com", "0987654321")
+        self.users = [self.user1, self.user2]
+
+    def test_expense_creation(self):
+        expense = Expense(1, 100, self.users, 'EQUAL')
+        self.assertEqual(expense.paid_by, 1)
+        self.assertEqual(expense.amount, 100)
+        self.assertEqual(expense.users, self.users)
+        self.assertEqual(expense.split_type, 'EQUAL')
+
+    def test_split_expense_equal(self):
+        expense = Expense(1, 100, self.users, 'EQUAL')
         expense.split_expense()
-        # Check balances
-        self.assertEqual(self.user1.balance, 0)
-        self.assertEqual(self.user2.balance, 50)
-        self.assertEqual(self.user3.balance, 50)
-        # Check ExpenseManager
-        self.assertEqual(len(ExpenseManager[self.user1.user_id]), 2)  # Assuming two users were split
-        
-    def test_exact_split(self):
-        # Test exact split type
-        expense = Expense(paid_by=self.user1, amount=100, user_count=3, splits=[self.user2, self.user3], percentages=[30, 70], split_type="EXACT")
+        self.assertEqual(self.user1.is_owed, {2: 50})
+        self.assertEqual(self.user2.owes, {1: 50})
+
+    def test_split_expense_exact(self):
+        expense = Expense(1, 100, self.users, 'EXACT', [70, 30])
         expense.split_expense()
-        # Check balances
-        self.assertEqual(self.user1.balance, 0)
-        self.assertEqual(self.user2.balance, 30)
-        self.assertEqual(self.user3.balance, 70)
-        # Check ExpenseManager
-        self.assertEqual(len(ExpenseManager[self.user1.user_id]), 2)  # Assuming two users were split
-        
-    def test_percent_split(self):
-        # Test percent split type
-        expense = Expense(paid_by=self.user1, amount=100, user_count=3, splits=[self.user2, self.user3], percentages=[25, 75], split_type="PERCENT")
+        self.assertEqual(self.user1.is_owed, {2: 30})
+        self.assertEqual(self.user2.owes, {1: 30})
+
+    def test_split_expense_percent(self):
+        expense = Expense(1, 100, self.users, 'PERCENT', [70, 30])
         expense.split_expense()
-        # Check balances
-        self.assertEqual(self.user1.balance, 0)
-        self.assertEqual(self.user2.balance, 25)
-        self.assertEqual(self.user3.balance, 75)
-        # Check ExpenseManager
-        self.assertEqual(len(ExpenseManager[self.user1.user_id]), 2)  # Assuming two users were split
+        self.assertEqual(self.user1.is_owed, {2: 30})
+        self.assertEqual(self.user2.owes, {1: 30})
 
 if __name__ == '__main__':
     unittest.main()
